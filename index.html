@@ -2,108 +2,103 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>BeeDoc AI - Scanner Registro</title>
+    <title>BeeDoc AI - Registro Digitale</title>
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); width: 100%; max-width: 550px; border-top: 5px solid #ffcc00; }
-        h1 { margin: 0 0 10px 0; color: #333; }
-        input, button, textarea { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; }
-        button { background: #333; color: white; border: none; font-weight: bold; cursor: pointer; }
-        button:hover { background: #555; }
-        #downloadBtn { background: #0066cc; display: none; margin-top: 15px; }
-        #status { font-weight: bold; color: #d35400; margin: 10px 0; font-size: 0.9em; }
-        textarea { height: 300px; background: #fcfcfc; font-family: monospace; font-size: 12px; }
+        /* Reset e Base */
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8f9fa; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        
+        /* NUOVO HEADER */
+        header {
+            background: #ffcc00; /* Giallo Miele */
+            width: 100%;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        header h1 {
+            margin: 0;
+            color: #332200;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+        header p { margin: 5px 0 0; color: #664400; font-size: 0.9rem; opacity: 0.8; }
+
+        /* Contenitore Principale */
+        .card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 30px rgba(0,0,0,0.05); 
+            width: 90%; 
+            max-width: 700px;
+            border-top: 5px solid #ffcc00;
+        }
+
+        /* Input e Bottoni (Migliorati) */
+        .section { margin-bottom: 25px; }
+        label { display: block; margin-bottom: 10px; font-weight: 600; color: #444; }
+        
+        input[type="password"], input[type="file"] { 
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; 
+        }
+
+        .btn-group { display: flex; gap: 15px; margin: 20px 0; }
+        button { 
+            flex: 1; padding: 15px; border: none; border-radius: 8px; 
+            font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 14px;
+        }
+        
+        #process-btn { background: #333; color: white; }
+        #process-btn:hover { background: #000; }
+        
+        #download-btn { background: #27ae60; color: white; opacity: 0.3; cursor: not-allowed; }
+        #download-btn.active { opacity: 1; cursor: pointer; }
+        #download-btn.active:hover { background: #219150; }
+
+        #status { text-align: center; margin: 15px 0; font-weight: bold; color: #d35400; min-height: 1.5em; }
+        textarea { 
+            width: 100%; height: 300px; padding: 20px; border: 1px solid #eee; 
+            border-radius: 8px; background: #fafafa; font-family: 'Consolas', monospace; 
+            font-size: 14px; box-sizing: border-box; line-height: 1.6;
+        }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h1>🐝 BeeDoc AI</h1>
-    <p style="color: #666; font-size: 0.85em;">Versione Diagnostica (Scanner Documenti)</p>
+    <header>
+        <h1>🐝 BEEDOC <span style="font-weight: 300;">AI</span></h1>
+        <p>Conversione Intelligente dei Registri di Apicoltura</p>
+    </header>
 
-    <input type="password" id="apiKey" placeholder="Incolla Chiave API (AIza...)">
-    <input type="file" id="fileInput" accept="image/*">
-    
-    <button id="processBtn">AVVIA ANALISI</button>
-    
-    <div id="status">Stato: In attesa</div>
-    
-    <textarea id="output" placeholder="Il risultato apparirà qui..."></textarea>
-    
-    <button id="downloadBtn">📄 SCARICA .DOC</button>
-</div>
+    <div class="card">
+        <div class="section">
+            <label>Chiave di Accesso (Google AI)</label>
+            <input type="password" id="api-key" placeholder="Incolla qui la tua API Key personale">
+        </div>
 
-<script>
-const processBtn = document.getElementById('processBtn');
-const downloadBtn = document.getElementById('downloadBtn');
-const status = document.getElementById('status');
-const output = document.getElementById('output');
+        <div class="section">
+            <label>Carica Foto del Registro</label>
+            <input type="file" id="image-input" accept="image/*">
+        </div>
 
-processBtn.onclick = async () => {
-    const key = document.getElementById('apiKey').value.trim();
-    const file = document.getElementById('fileInput').files[0];
+        <div id="status">Pronto per l'analisi</div>
 
-    if (!key || !file) {
-        alert("Inserisci la chiave API e seleziona un'immagine.");
-        return;
-    }
+        <div class="btn-group">
+            <button id="process-btn">AVVIA TRASCRIZIONE</button>
+            <button id="download-btn" disabled>SCARICA FILE WORD</button>
+        </div>
 
-    status.style.color = "#d35400";
-    status.innerText = "⏳ Conversione immagine...";
+        <textarea id="output" placeholder="Il testo digitalizzato apparirà qui..."></textarea>
+    </div>
 
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onloadend = async () => {
-        const base64Data = reader.result.split(',')[1];
-        const mimeType = file.type;
-
-        const model = "gemini-1.5-flash"; 
-        status.innerText = `⏳ Analisi con ${model} in corso...`;
-
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [
-                            { text: "Estrai tutto il testo da questo registro. Mantieni la formattazione tabellare se presente e correggi eventuali errori di lettura OCR. Restituisci solo il testo del documento." },
-                            { inline_data: { mime_type: mimeType, data: base64Data } }
-                        ]
-                    }]
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.candidates && data.candidates[0].content.parts[0].text) {
-                const resultText = data.candidates[0].content.parts[0].text;
-                output.value = resultText;
-                status.innerText = "✅ Analisi completata!";
-                status.style.color = "green";
-                downloadBtn.style.display = "block";
-            } else {
-                throw new Error(data.error?.message || "Errore nella risposta dell'AI");
-            }
-        } catch (err) {
-            console.error(err);
-            status.innerText = "❌ Errore: " + err.message;
-            status.style.color = "red";
-        }
-    };
-};
-
-// Funzione per scaricare il file .doc
-downloadBtn.onclick = () => {
-    const text = output.value;
-    const blob = new Blob(['\ufeff', text], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'registro_digitalizzato.doc';
-    link.click();
-};
-</script>
+    <script type="module">
+        // ... (qui incolla il codice JavaScript che avevamo già scritto) ...
+    </script>
 
 </body>
 </html>
