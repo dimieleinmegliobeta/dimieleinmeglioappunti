@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>BeeDoc AI - Professional Edition</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f9; display: flex; justify-content: center; padding: 40px; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 650px; }
+        h2 { color: #2c3e50; text-align: center; margin-top: 0; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 10px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9em; color: #555; }
+        input[type="password"], input[type="file"] { width: 100%; padding: 10px; box-sizing: border-box; border-radius: 5px; border: 1px solid #ddd; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        
+        #process-btn { background: #3498db; color: white; }
+        #download-btn { background: #27ae60; color: white; opacity: 0.3; cursor: not-allowed; }
+        #download-btn.active { opacity: 1; cursor: pointer; }
+        
+        #status { text-align: center; margin: 15px 0; font-size: 0.9em; color: #e67e22; font-weight: bold; min-height: 1.2em; }
+        textarea { width: 100%; height: 250px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🐝 BeeDoc AI</h2>
+    
+    <div class="section">
+        <label>1. La tua API KEY (Gemini)</label>
+        <input type="password" id="api-key" placeholder="Incolla qui la chiave di Google AI Studio">
+    </div>
+
+    <div class="section">
+        <label>2. Foto del Registro (JPG/PNG)</label>
+        <input type="file" id="image-input" accept="image/*">
+    </div>
+
+    <div id="status">Pronto all'uso</div>
+
+    <div class="btn-group">
+        <button id="process-btn">ANALIZZA E TRASCRIVI</button>
+        <button id="download-btn" disabled>SCARICA WORD (.doc)</button>
+    </div>
+
+    <textarea id="output" placeholder="Il testo apparirà qui dopo l'analisi..."></textarea>
+</div>
+
+<script type="module">
+    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+    const processBtn = document.getElementById('process-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+
+    processBtn.addEventListener('click', async () => {
+        const key = document.getElementById('api-key').value;
+        const fileInput = document.getElementById('image-input');
+
+        if (!key) { alert("Inserisci la chiave API!"); return; }
+        if (!fileInput.files[0]) { alert("Carica un'immagine!"); return; }
+
+        status.innerText = "⏳ L'AI sta leggendo il registro... attendi.";
+        processBtn.disabled = true;
+
+        try {
+            const genAI = new GoogleGenerativeAI(key);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onloadend = async () => {
+                const base64Data = reader.result.split(',')[1];
+                
+                // Prompt ottimizzato per il tuo caso
+                const prompt = "Trascrivi integralmente questo registro di apicoltura. Organizzalo per date. Mantieni tutti i dettagli tecnici (FAM, Nuclei, R, Celle). Restituisci solo il testo pulito.";
+
+                const result = await model.generateContent([
+                    prompt,
+                    { inlineData: { data: base64Data, mimeType: file.type } }
+                ]);
+
+                output.value = result.response.text();
+                status.innerText = "✅ Conversione completata!";
+                downloadBtn.disabled = false;
+                downloadBtn.classList.add('active');
+            };
+            reader.readAsDataURL(file);
+
+        } catch (error) {
+            status.innerText = "❌ Errore: Controlla la chiave API.";
+            console.error(error);
+        } finally {
+            processBtn.disabled = false;
+        }
+    });
+
+    // Funzione per il download del file Word formattato
+    downloadBtn.addEventListener('click', () => {
+        const text = output.value.replace(/\n/g, '<br>');
+        const html = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><style>
+                body { font-family: 'Arial', sans-serif; padding: 20px; }
+                h1 { color: #2c3e50; border-bottom: 2px solid #3498db; }
+                .content { font-size: 11pt; line-height: 1.5; }
+            </style></head>
+            <body>
+                <h1>Registro Apicoltura Digitalizzato</h1>
+                <div class="content">${text}</div>
+            </body></html>`;
+
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'Registro_Aprile_2025.doc';
+        link.click();
+    });
+</script>
+
+</body>
+</html>
