@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>BeeDoc AI - Reset Totale</title>
+    <title>BeeDoc AI - Forza Bruta</title>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 20px; background: #fdfdfd; }
         .box { background: white; border: 2px solid #ffcc00; padding: 30px; border-radius: 15px; max-width: 500px; margin: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
@@ -16,8 +16,8 @@
 <body>
     <div class="box">
         <h1>🐝 BeeDoc AI</h1>
-        <p>Incolla la NUOVA chiave creata ora</p>
-        <input type="password" id="k" placeholder="Nuova Chiave API">
+        <p>Prova il modello Flash-8B (Ultra Compatibile)</p>
+        <input type="password" id="k" placeholder="Chiave API">
         <input type="file" id="f" accept="image/*">
         <button id="go">AVVIA ANALISI</button>
         <div id="s">Stato: Pronto</div>
@@ -33,9 +33,9 @@
             const out = document.getElementById('o');
             const errDiv = document.getElementById('err');
 
-            if(!key || !file) return alert("Inserisci chiave e foto!");
+            if(!key || !file) return alert("Manca qualcosa!");
 
-            status.innerText = "⏳ Analisi in corso...";
+            status.innerText = "⏳ Tentativo con Gemini 1.5 Flash 8B...";
             errDiv.style.display = "none";
             out.value = "";
 
@@ -44,8 +44,8 @@
             reader.onloadend = async () => {
                 const b64 = reader.result.split(',')[1];
                 
-                // USIAMO LA VERSIONE V1 (STABILE) E IL NOME MODELLO PIÙ COMPATIBILE
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`;
+                // QUESTO È IL MODELLO CHE GOOGLE STA SPINGENDO ORA PER LE CHIAVI FREE
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${key}`;
                 
                 try {
                     const r = await fetch(url, {
@@ -53,7 +53,7 @@
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
                             contents: [{parts: [
-                                {text: "Trascrivi fedelmente questo registro apistico."},
+                                {text: "Trascrivi fedelmente questo registro apistico. Dividi per date."},
                                 {inline_data: {mime_type: file.type, data: b64}}
                             ]}]
                         })
@@ -63,9 +63,9 @@
 
                     if(d.candidates && d.candidates[0].content) {
                         out.value = d.candidates[0].content.parts[0].text;
-                        status.innerText = "✅ CE L'ABBIAMO FATTA!";
+                        status.innerText = "✅ VITTORIA! CE L'ABBIAMO FATTA!";
                     } else {
-                        status.innerText = "❌ Google ha risposto con un errore.";
+                        status.innerText = "❌ Ancora errore dal server.";
                         errDiv.innerText = "Errore: " + (d.error ? d.error.message : JSON.stringify(d));
                         errDiv.style.display = "block";
                     }
