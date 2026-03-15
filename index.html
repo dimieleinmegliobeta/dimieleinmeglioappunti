@@ -1,60 +1,97 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>BeeDoc AI - Reset Geografico</title>
+    <title>BeeDoc AI - Sblocco Europa</title>
+    <style>
+        body { font-family: sans-serif; background: #fdfdfd; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; border-top: 5px solid #ffcc00; }
+        input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background: #333; color: white; border: none; font-weight: bold; cursor: pointer; }
+        #status { color: #d35400; font-weight: bold; margin: 10px 0; font-size: 0.9em; }
+        textarea { width: 100%; height: 250px; margin-top: 15px; border-radius: 8px; border: 1px solid #eee; padding: 10px; box-sizing: border-box; }
+    </style>
 </head>
-<body style="font-family:sans-serif; text-align:center; padding:30px; background:#f4f4f4;">
-    <div style="background:white; padding:20px; border-radius:15px; max-width:500px; margin:auto; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
+<body>
+
+    <div class="card">
         <h1>🐝 BeeDoc AI</h1>
-        <p style="font-size:0.8em; color:red;">Tentativo di bypass blocco regionale</p>
-        <input type="password" id="api" placeholder="Incolla Chiave API" style="width:80%; padding:10px; margin:10px;"><br>
-        <input type="file" id="foto" style="margin:20px;"><br>
-        <button id="vai" style="padding:15px 30px; background:#333; color:white; border:none; border-radius:10px; cursor:pointer;">AVVIA ANALISI</button>
-        <p id="stato" style="font-weight:bold; color:orange;">Stato: Pronto</p>
-        <textarea id="risultato" style="width:90%; height:200px; padding:10px;"></textarea>
+        <p style="font-size: 0.8em; color: #666;">Versione ottimizzata per API Europee</p>
+        
+        <input type="password" id="key" placeholder="Incolla la tua Chiave API">
+        <input type="file" id="foto" accept="image/*">
+        
+        <button id="go">ANALIZZA REGISTRO</button>
+        
+        <div id="status">Pronto</div>
+        <textarea id="out" placeholder="Il testo apparirà qui..."></textarea>
     </div>
 
     <script>
-        document.getElementById('vai').onclick = async () => {
-            const k = document.getElementById('api').value.trim();
-            const f = document.getElementById('foto').files[0];
-            const s = document.getElementById('stato');
-            if(!k || !f) return alert("Manca chiave o foto!");
+        document.getElementById('go').onclick = async () => {
+            const key = document.getElementById('key').value.trim();
+            const fileInput = document.getElementById('foto');
+            const status = document.getElementById('status');
+            const out = document.getElementById('out');
 
-            s.innerText = "⏳ Forzatura connessione...";
+            if (!key || !fileInput.files[0]) return alert("Manca chiave o foto!");
+
+            status.innerText = "⏳ Tentativo di sblocco modelli...";
+            
+            const file = fileInput.files[0];
             const reader = new FileReader();
-            reader.readAsDataURL(f);
+            reader.readAsDataURL(file);
             reader.onloadend = async () => {
-                const b64 = reader.result.split(',')[1];
+                const base64 = reader.result.split(',')[1];
                 
-                // CAMBIAMENTO CHIAVE: Usiamo v1 invece di v1beta e il modello specifico 1.5-flash-latest
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${k}`;
-                
+                // TRUCCO: In Europa il modello "flash" spesso richiede il suffisso "latest" o "8b" 
+                // Proviamo la versione più compatibile in assoluto per il Free Tier
+                const modelName = "gemini-1.5-flash-latest"; 
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
+
                 try {
-                    const r = await fetch(url, {
+                    const response = await fetch(url, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            contents: [{parts: [
-                                {text: "Trascrivi accuratamente questo registro apistico."},
-                                {inline_data: {mime_type: f.type, data: b64}}
+                            contents: [{ parts: [
+                                { text: "Trascrivi fedelmente questo registro apistico. Estrai le date e i dati tecnici." },
+                                { inline_data: { mime_type: file.type, data: base64 } }
                             ]}]
                         })
                     });
-                    
-                    const d = await r.json();
-                    
-                    if(d.candidates) {
-                        document.getElementById('risultato').value = d.candidates[0].content.parts[0].text;
-                        s.innerText = "✅ FUNZIONA!";
-                    } else if (d.error && d.error.status === "PERMISSION_DENIED") {
-                        s.innerText = "❌ Blocco Regionale (EU/Italy)";
-                        document.getElementById('risultato').value = "Google sta bloccando l'accesso gratuito dall'Italia per questa API specifica. Devi attivare un 'Billing Account' (anche senza pagare) su Google Cloud per sbloccarla.";
-                    } else {
-                        s.innerText = "❌ Errore Google: " + (d.error ? d.error.message : "Sconosciuto");
+
+                    const data = await response.json();
+
+                    if (data.candidates && data.candidates[0].content) {
+                        out.value = data.candidates[0].content.parts[0].text;
+                        status.innerText = "✅ VITTORIA! TRASCRITTO.";
+                    } else if (data.error) {
+                        // Se fallisce ancora, proviamo il modello "piccolo" (8B) automaticamente
+                        status.innerText = "⏳ Cambio modello (Provo 8B)...";
+                        const url8b = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${key}`;
+                        const resp8b = await fetch(url8b, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: [
+                                    { text: "Trascrivi fedelmente questo registro." },
+                                    { inline_data: { mime_type: file.type, data: base64 } }
+                                ]}]
+                            })
+                        });
+                        const data8b = await resp8b.json();
+                        
+                        if (data8b.candidates) {
+                            out.value = data8b.candidates[0].content.parts[0].text;
+                            status.innerText = "✅ CE L'ABBIAMO FATTA (Modello 8B)!";
+                        } else {
+                            status.innerText = "❌ Blocco persistente: " + data8b.error.message;
+                        }
                     }
-                } catch(e) { s.innerText = "❌ Errore rete"; }
+                } catch (e) {
+                    status.innerText = "❌ Errore di connessione.";
+                }
             };
         };
     </script>
