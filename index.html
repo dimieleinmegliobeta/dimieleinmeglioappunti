@@ -3,133 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BeeDoc AI - Versione Stabile</title>
+    <title>BeeDoc AI - Professional</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
-        header { text-align: center; margin-bottom: 20px; }
-        h1 { color: #ccaa00; margin: 0; }
-        .field { margin-bottom: 20px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; }
-        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
-        button { width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
-        button:disabled { background: #ccc; }
-        #status { text-align: center; color: #d35400; font-weight: bold; margin: 15px 0; font-size: 0.9em; }
-        textarea { width: 100%; height: 250px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; font-family: monospace; }
-        .error-log { font-size: 12px; color: red; background: #fff0f0; padding: 10px; border-radius: 5px; display: none; margin-top: 10px; white-space: pre-wrap; }
+        body { font-family: 'Segoe UI', sans-serif; background: #fdfdfd; margin: 0; display: flex; flex-direction: column; align-items: center; color: #333; }
+        header { background: #ffcc00; width: 100%; padding: 30px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; margin-bottom: 30px; }
+        header h1 { margin: 0; color: #443300; font-size: 2rem; font-weight: 800; }
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 95%; max-width: 700px; border: 1px solid #eee; box-sizing: border-box; }
+        .section { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 10px; font-weight: 700; color: #555; }
+        input { width: 100%; padding: 12px; border: 2px solid #f0f0f0; border-radius: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.3s; text-transform: uppercase; margin-top: 10px; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status { text-align: center; margin: 20px 0; font-weight: 600; color: #d35400; min-height: 1.5em; }
+        textarea { width: 100%; height: 300px; padding: 20px; border: 1px solid #eee; border-radius: 15px; background: #f9f9f9; font-family: monospace; font-size: 14px; box-sizing: border-box; resize: vertical; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>🐝 BeeDoc AI</h1>
+        <h1>🐝 BEEDOC AI</h1>
         <p>Digitalizzazione Registri Apistici</p>
     </header>
 
-    <div class="container">
-        <div class="field">
-            <label for="apiKey">Chiave API Gemini:</label>
-            <input type="password" id="apiKey" placeholder="Incolla la tua chiave API qui">
+    <div class="card">
+        <div class="section">
+            <label for="api-key">1. Chiave API Gemini</label>
+            <input type="password" id="api-key" placeholder="Incolla qui la tua API Key">
         </div>
 
-        <div class="field">
-            <label for="imageFile">Foto del Registro:</label>
-            <input type="file" id="imageFile" accept="image/*">
+        <div class="section">
+            <label for="image-input">2. Foto del Registro (JPG/PNG)</label>
+            <input type="file" id="image-input" accept="image/*">
         </div>
 
-        <button id="startBtn">AVVIA TRASCRIZIONE</button>
-        <div id="status">Pronto.</div>
-        
-        <textarea id="resultText" placeholder="Il testo apparirà qui..."></textarea>
-        <div id="errorLog" class="error-log"></div>
+        <div id="status">Pronto per l'analisi</div>
+
+        <button id="process-btn">Avvia Analisi Digitale</button>
+
+        <label style="margin-top:20px">Risultato della trascrizione:</label>
+        <textarea id="output" placeholder="Il testo apparirà qui..."></textarea>
     </div>
 
     <script>
-        const startBtn = document.getElementById('startBtn');
+        const processBtn = document.getElementById('process-btn');
+        const output = document.getElementById('output');
         const status = document.getElementById('status');
-        const resultText = document.getElementById('resultText');
-        const errorLog = document.getElementById('errorLog');
 
-        startBtn.addEventListener('click', async () => {
-            const key = document.getElementById('apiKey').value.trim();
-            const fileInput = document.getElementById('imageFile');
-            
-            if (!key || !fileInput.files[0]) {
-                alert("Inserisci la chiave e seleziona una foto!");
+        processBtn.addEventListener('click', async () => {
+            const apiKey = document.getElementById('api-key').value.trim();
+            const fileInput = document.getElementById('image-input');
+
+            if (!apiKey || !fileInput.files[0]) {
+                alert("Per favore, inserisci la chiave API e seleziona una foto.");
                 return;
             }
 
-            startBtn.disabled = true;
-            status.innerText = "⏳ Preparazione immagine...";
-            errorLog.style.display = "none";
-            resultText.value = "";
+            processBtn.disabled = true;
+            status.innerText = "⏳ Collegamento con l'AI in corso...";
+            output.value = "";
 
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-
-            reader.onloadend = async () => {
-                const base64Data = reader.result.split(',')[1];
+            try {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
                 
-                // Proviamo i 3 nomi di modelli più comuni che Google accetta
-                const models = [
-                    "gemini-1.5-flash",
-                    "gemini-1.5-flash-latest",
-                    "gemini-pro-vision" 
-                ];
-
-                let success = false;
-                let lastErrorMessage = "";
-
-                for (let modelName of models) {
-                    if (success) break;
-
-                    status.innerText = `🔍 Tentativo con modello: ${modelName}...`;
-
-                    // Proviamo sia v1 che v1beta per ogni modello
-                    const versions = ["v1beta", "v1"];
+                reader.onloadend = async () => {
+                    const base64Data = reader.result.split(',')[1];
                     
-                    for (let ver of versions) {
-                        const url = `https://generativelanguage.googleapis.com/${ver}/models/${modelName}:generateContent?key=${key}`;
-                        
-                        try {
-                            const response = await fetch(url, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    contents: [{ parts: [
-                                        { text: "Trascrivi questo registro apistico in modo testuale, mantieni le date e i dettagli tecnici come FAM, Nuclei, R, Celle." },
-                                        { inline_data: { mime_type: file.type, data: base64Data } }
-                                    ]}]
-                                })
-                            });
+                    // SOLUZIONE AL 404: Usiamo v1beta che è la più compatibile con Gemini 1.5 Flash
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                    
+                    const payload = {
+                        contents: [{
+                            parts: [
+                                { text: "Trascrivi fedelmente questo registro apistico. Dividi per date. Mantieni termini come FAM, Nuclei, R, Celle." },
+                                { inline_data: { mime_type: file.type, data: base64Data } }
+                            ]
+                        }]
+                    };
 
-                            const data = await response.json();
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
 
-                            if (data.candidates && data.candidates[0].content) {
-                                resultText.value = data.candidates[0].content.parts[0].text;
-                                status.innerText = "✅ Trascrizione completata!";
-                                success = true;
-                                break;
-                            } else if (data.error) {
-                                lastErrorMessage = `${modelName} (${ver}): ${data.error.message}`;
-                                console.log("Fallito:", lastErrorMessage);
-                            }
-                        } catch (e) {
-                            lastErrorMessage = "Errore di connessione.";
-                        }
-                        if (success) break;
+                    const data = await response.json();
+                    
+                    if (data.candidates && data.candidates[0].content) {
+                        output.value = data.candidates[0].content.parts[0].text;
+                        status.innerText = "✅ Analisi completata con successo!";
+                    } else if (data.error) {
+                        status.innerText = "❌ Errore Google: " + data.error.message;
+                    } else {
+                        status.innerText = "❌ Risposta non valida dal server.";
                     }
-                }
+                    processBtn.disabled = false;
+                };
+                reader.readAsDataURL(file);
 
-                if (!success) {
-                    status.innerText = "❌ Errore durante l'analisi";
-                    errorLog.innerText = "Google non ha accettato la richiesta.\nUltimo errore: " + lastErrorMessage;
-                    errorLog.style.display = "block";
-                }
-                startBtn.disabled = false;
-            };
-
-            reader.readAsDataURL(file);
+            } catch (error) {
+                status.innerText = "❌ Errore di connessione: " + error.message;
+                processBtn.disabled = false;
+            }
         });
     </script>
 </body>
