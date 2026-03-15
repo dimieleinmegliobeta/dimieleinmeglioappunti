@@ -2,103 +2,120 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>BeeDoc AI - Registro Digitale</title>
+    <title>BeeDoc AI - Scanner Registro</title>
     <style>
-        /* Reset e Base */
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8f9fa; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); width: 100%; max-width: 550px; border-top: 5px solid #ffcc00; }
+        h1 { margin: 0 0 10px 0; color: #333; text-align: center; }
+        input, button, textarea { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; }
         
-        /* NUOVO HEADER */
-        header {
-            background: #ffcc00; /* Giallo Miele */
-            width: 100%;
-            padding: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        header h1 {
-            margin: 0;
-            color: #332200;
-            font-size: 1.8rem;
-            letter-spacing: 1px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-        }
-        header p { margin: 5px 0 0; color: #664400; font-size: 0.9rem; opacity: 0.8; }
+        button { background: #333; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #444; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
 
-        /* Contenitore Principale */
-        .card { 
-            background: white; 
-            padding: 30px; 
-            border-radius: 12px; 
-            box-shadow: 0 8px 30px rgba(0,0,0,0.05); 
-            width: 90%; 
-            max-width: 700px;
-            border-top: 5px solid #ffcc00;
+        /* Stile per il pulsante Word (nascosto all'inizio) */
+        #downloadBtn { 
+            background: #2b5797; 
+            display: none; 
+            margin-top: 15px;
         }
 
-        /* Input e Bottoni (Migliorati) */
-        .section { margin-bottom: 25px; }
-        label { display: block; margin-bottom: 10px; font-weight: 600; color: #444; }
-        
-        input[type="password"], input[type="file"] { 
-            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; 
-        }
-
-        .btn-group { display: flex; gap: 15px; margin: 20px 0; }
-        button { 
-            flex: 1; padding: 15px; border: none; border-radius: 8px; 
-            font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 14px;
-        }
-        
-        #process-btn { background: #333; color: white; }
-        #process-btn:hover { background: #000; }
-        
-        #download-btn { background: #27ae60; color: white; opacity: 0.3; cursor: not-allowed; }
-        #download-btn.active { opacity: 1; cursor: pointer; }
-        #download-btn.active:hover { background: #219150; }
-
-        #status { text-align: center; margin: 15px 0; font-weight: bold; color: #d35400; min-height: 1.5em; }
-        textarea { 
-            width: 100%; height: 300px; padding: 20px; border: 1px solid #eee; 
-            border-radius: 8px; background: #fafafa; font-family: 'Consolas', monospace; 
-            font-size: 14px; box-sizing: border-box; line-height: 1.6;
-        }
+        #status { font-weight: bold; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 0.9em; text-align: center; background: #f9f9f9; color: #666; }
+        textarea { height: 350px; font-family: monospace; font-size: 13px; background: #fafafa; border: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>🐝 BEEDOC <span style="font-weight: 300;">AI</span></h1>
-        <p>Conversione Intelligente dei Registri di Apicoltura</p>
-    </header>
+<div class="card">
+    <h1>🐝 BeeDoc AI</h1>
+    <p style="text-align: center; color: #888; font-size: 0.8em; margin-top: -10px;">Analisi Documenti Apistici</p>
 
-    <div class="card">
-        <div class="section">
-            <label>Chiave di Accesso (Google AI)</label>
-            <input type="password" id="api-key" placeholder="Incolla qui la tua API Key personale">
-        </div>
+    <input type="password" id="apiKey" placeholder="Incolla Chiave API (AIza...)">
+    <input type="file" id="fileInput" accept="image/*">
+    
+    <button id="processBtn">AVVIA SCANSIONE</button>
+    
+    <div id="status">In attesa di file e chiave...</div>
+    
+    <textarea id="output" placeholder="La trascrizione apparirà qui..."></textarea>
 
-        <div class="section">
-            <label>Carica Foto del Registro</label>
-            <input type="file" id="image-input" accept="image/*">
-        </div>
+    <button id="downloadBtn">📄 SCARICA TRASCRIZIONE (.DOC)</button>
+</div>
 
-        <div id="status">Pronto per l'analisi</div>
+<script>
+const processBtn = document.getElementById('processBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const status = document.getElementById('status');
+const output = document.getElementById('output');
 
-        <div class="btn-group">
-            <button id="process-btn">AVVIA TRASCRIZIONE</button>
-            <button id="download-btn" disabled>SCARICA FILE WORD</button>
-        </div>
+processBtn.onclick = async () => {
+    const key = document.getElementById('apiKey').value.trim();
+    const file = document.getElementById('fileInput').files[0];
 
-        <textarea id="output" placeholder="Il testo digitalizzato apparirà qui..."></textarea>
-    </div>
+    if (!key || !file) {
+        alert("Inserisci chiave e seleziona un file.");
+        return;
+    }
 
-    <script type="module">
-        // ... (qui incolla il codice JavaScript che avevamo già scritto) ...
-    </script>
+    const modelAlias = "gemini-flash-latest"; 
+    status.innerText = "⏳ Analisi in corso...";
+    status.style.color = "orange";
+    processBtn.disabled = true;
+    downloadBtn.style.display = "none";
+    output.value = "";
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = async () => {
+        const base64Data = reader.result.split(',')[1];
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelAlias}:generateContent?key=${key}`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: "Trascrivi integralmente il testo contenuto in questa immagine, mantenendo la formattazione originale riga per riga." },
+                            { inline_data: { mime_type: file.type, data: base64Data } }
+                        ]
+                    }]
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.error) throw new Error(data.error.message);
+
+            if (data.candidates && data.candidates[0].content) {
+                output.value = data.candidates[0].content.parts[0].text;
+                status.innerText = "✅ Trascrizione completata";
+                status.style.color = "green";
+                downloadBtn.style.display = "block"; 
+            } else {
+                throw new Error("Nessun testo trovato nell'immagine.");
+            }
+        } catch (err) {
+            status.innerText = "❌ ERRORE: " + err.message;
+            status.style.color = "red";
+        } finally {
+            processBtn.disabled = false;
+        }
+    };
+};
+
+downloadBtn.onclick = () => {
+    const text = output.value;
+    const blob = new Blob(['\ufeff', text], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'BeeDoc_Trascrizione.doc';
+    link.click();
+    URL.revokeObjectURL(url);
+};
+</script>
 
 </body>
 </html>
