@@ -1,131 +1,63 @@
 <!DOCTYPE html>
-<html lang="it">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BeeDoc AI - Soluzione Finale</title>
+    <title>BeeDoc AI - Ultima Speranza</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
-        h1 { color: #ccaa00; text-align: center; }
-        .field { margin-bottom: 20px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; }
-        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
-        button { width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; }
-        button:disabled { background: #ccc; }
-        #status { text-align: center; color: #d35400; font-weight: bold; margin: 15px 0; font-size: 0.8em; }
-        textarea { width: 100%; height: 250px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; font-family: monospace; }
-        .debug-box { font-size: 10px; color: #666; background: #eee; padding: 5px; margin-top: 10px; border-radius: 3px; display: none; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #fafafa; }
+        .box { background: white; border: 2px solid #ffcc00; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; }
+        input, button { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; }
+        button { background: #333; color: white; font-weight: bold; cursor: pointer; }
+        textarea { width: 90%; height: 200px; margin-top: 20px; }
+        #log { font-size: 10px; color: red; text-align: left; padding: 10px; }
     </style>
 </head>
 <body>
-
-    <div class="card">
+    <div class="box">
         <h1>🐝 BeeDoc AI</h1>
-        
-        <div class="field">
-            <label for="key">Chiave API Gemini:</label>
-            <input type="password" id="key" placeholder="Incolla la chiave qui">
-        </div>
-
-        <div class="field">
-            <label for="foto">Foto Registro:</label>
-            <input type="file" id="foto" accept="image/*">
-        </div>
-
-        <button id="btn">AVVIA TRASCRIZIONE</button>
-        
-        <div id="status">Pronto.</div>
-        
-        <textarea id="out" placeholder="Il testo apparirà qui..."></textarea>
-        <div id="debug" class="debug-box"></div>
+        <input type="password" id="k" placeholder="Incolla Chiave API">
+        <input type="file" id="f" accept="image/*">
+        <button id="go">LEGGI REGISTRO</button>
+        <div id="s">Stato: Pronto</div>
+        <textarea id="o"></textarea>
+        <div id="log"></div>
     </div>
 
     <script>
-        const btn = document.getElementById('btn');
-        const status = document.getElementById('status');
-        const out = document.getElementById('out');
-        const debug = document.getElementById('debug');
+        document.getElementById('go').onclick = async () => {
+            const key = document.getElementById('k').value;
+            const file = document.getElementById('f').files[0];
+            if(!key || !file) return alert("Manca qualcosa!");
 
-        btn.addEventListener('click', async () => {
-            const apiKey = document.getElementById('key').value.trim();
-            const fileInput = document.getElementById('foto');
-            
-            if (!apiKey || !fileInput.files[0]) {
-                alert("Manca chiave o foto!");
-                return;
-            }
-
-            btn.disabled = true;
-            out.value = "";
-            debug.style.display = "block";
-            debug.innerText = "Inizio test modelli...";
-
-            const file = fileInput.files[0];
+            document.getElementById('s').innerText = "⏳ Sto bussando a Google...";
             const reader = new FileReader();
-
-            reader.onloadend = async () => {
-                const base64 = reader.result.split(',')[1];
-                
-                // Elenco di TUTTI i possibili nomi che Google accetta per questo compito
-                const modelliDaProvare = [
-                    "gemini-1.5-flash-latest",
-                    "gemini-1.5-flash",
-                    "gemini-1.5-pro",
-                    "gemini-pro-vision"
-                ];
-
-                let fatto = false;
-
-                for (let modello of modelliDaProvare) {
-                    if (fatto) break;
-                    
-                    status.innerText = `⏳ Provando modello: ${modello}...`;
-                    debug.innerText += `\nTestando ${modello}...`;
-
-                    // Proviamo sia v1beta che v1
-                    const versioni = ["v1beta", "v1"];
-
-                    for (let v of versioni) {
-                        if (fatto) break;
-
-                        const url = `https://generativelanguage.googleapis.com/${v}/models/${modello}:generateContent?key=${apiKey}`;
-                        
-                        try {
-                            const resp = await fetch(url, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    contents: [{ parts: [
-                                        { text: "Trascrivi fedelmente questo registro apistico. Mantieni le date." },
-                                        { inline_data: { mime_type: file.type, data: base64 } }
-                                    ]}]
-                                })
-                            });
-
-                            const data = await resp.json();
-
-                            if (data.candidates && data.candidates[0].content) {
-                                out.value = data.candidates[0].content.parts[0].text;
-                                status.innerText = "✅ TRASCRITTO!";
-                                fatto = true;
-                            } else {
-                                debug.innerText += `\n${modello} (${v}) fallito: ${data.error ? data.error.message : 'no content'}`;
-                            }
-                        } catch (e) {
-                            debug.innerText += `\nErrore rete su ${modello}`;
-                        }
-                    }
-                }
-
-                if (!fatto) {
-                    status.innerText = "❌ Nessun modello ha risposto. Controlla la Chiave API.";
-                }
-                btn.disabled = false;
-            };
-
             reader.readAsDataURL(file);
-        });
+            reader.onloadend = async () => {
+                const b64 = reader.result.split(',')[1];
+                
+                // USIAMO IL MODELLO PIÙ COMPATIBILE IN ASSOLUTO
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`;
+                
+                try {
+                    const r = await fetch(url, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            contents: [{parts: [{text: "Trascrivi il testo di questa foto."}, {inline_data: {mime_type: file.type, data: b64}}]}]
+                        })
+                    });
+                    const d = await r.json();
+                    if(d.candidates) {
+                        document.getElementById('o').value = d.candidates[0].content.parts[0].text;
+                        document.getElementById('s').innerText = "✅ CE L'ABBIAMO FATTA!";
+                    } else {
+                        document.getElementById('log').innerText = JSON.stringify(d.error);
+                        document.getElementById('s').innerText = "❌ Niente da fare.";
+                    }
+                } catch(e) {
+                    document.getElementById('s').innerText = "❌ Errore connessione.";
+                }
+            };
+        };
     </script>
 </body>
 </html>
