@@ -2,77 +2,92 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>BeeDoc AI - Forza Bruta</title>
+    <title>BeeDoc AI - Scanner Intelligente</title>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 20px; background: #fdfdfd; }
         .box { background: white; border: 2px solid #ffcc00; padding: 30px; border-radius: 15px; max-width: 500px; margin: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
         button { background: #333; color: white; font-weight: bold; cursor: pointer; border: none; }
-        textarea { width: 100%; height: 250px; margin-top: 20px; border-radius: 8px; border: 1px solid #eee; padding: 10px; box-sizing: border-box; font-family: monospace; }
-        #s { font-weight: bold; margin: 10px 0; color: #d35400; }
-        #err { font-size: 11px; color: red; background: #fff0f0; padding: 10px; margin-top: 10px; border-radius: 5px; display: none; text-align: left; }
+        textarea { width: 100%; height: 200px; margin-top: 20px; border-radius: 8px; border: 1px solid #eee; padding: 10px; box-sizing: border-box; font-family: monospace; }
+        #s { font-weight: bold; margin: 10px 0; color: #d35400; font-size: 0.9em; }
+        #debug { font-size: 10px; color: #888; text-align: left; background: #f0f0f0; padding: 10px; margin-top: 10px; max-height: 100px; overflow-y: auto; display: none; }
     </style>
 </head>
 <body>
     <div class="box">
         <h1>🐝 BeeDoc AI</h1>
-        <p>Prova il modello Flash-8B (Ultra Compatibile)</p>
-        <input type="password" id="k" placeholder="Chiave API">
-        <input type="file" id="f" accept="image/*">
-        <button id="go">AVVIA ANALISI</button>
-        <div id="s">Stato: Pronto</div>
-        <textarea id="o" placeholder="Risultato..."></textarea>
-        <div id="err"></div>
+        <p>Digitazione Automatica Registri</p>
+        <input type="password" id="key" placeholder="Incolla la chiave API">
+        <input type="file" id="foto" accept="image/*">
+        <button id="go">ANALIZZA ORA</button>
+        <div id="s">Stato: In attesa</div>
+        <textarea id="out" placeholder="Il testo apparirà qui..."></textarea>
+        <div id="debug" id="debug-log"></div>
     </div>
 
     <script>
         document.getElementById('go').onclick = async () => {
-            const key = document.getElementById('k').value.trim();
-            const file = document.getElementById('f').files[0];
+            const key = document.getElementById('key').value.trim();
+            const file = document.getElementById('foto').files[0];
             const status = document.getElementById('s');
-            const out = document.getElementById('o');
-            const errDiv = document.getElementById('err');
+            const out = document.getElementById('out');
+            const debug = document.getElementById('debug');
 
-            if(!key || !file) return alert("Manca qualcosa!");
+            if(!key || !file) return alert("Manca la chiave o la foto!");
 
-            status.innerText = "⏳ Tentativo con Gemini 1.5 Flash 8B...";
-            errDiv.style.display = "none";
-            out.value = "";
+            status.innerText = "⏳ Ricerca modello compatibile...";
+            debug.style.display = "block";
+            debug.innerText = "Inizio scansione...";
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onloadend = async () => {
                 const b64 = reader.result.split(',')[1];
                 
-                // QUESTO È IL MODELLO CHE GOOGLE STA SPINGENDO ORA PER LE CHIAVI FREE
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${key}`;
-                
-                try {
-                    const r = await fetch(url, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            contents: [{parts: [
-                                {text: "Trascrivi fedelmente questo registro apistico. Dividi per date."},
-                                {inline_data: {mime_type: file.type, data: b64}}
-                            ]}]
-                        })
-                    });
+                // Lista di emergenza: Google a volte cambia i nomi internamente
+                const modelli = [
+                    "gemini-1.5-flash",
+                    "gemini-1.5-flash-8b",
+                    "gemini-1.0-pro-vision-latest",
+                    "gemini-pro-vision"
+                ];
 
-                    const d = await r.json();
+                let successo = false;
 
-                    if(d.candidates && d.candidates[0].content) {
-                        out.value = d.candidates[0].content.parts[0].text;
-                        status.innerText = "✅ VITTORIA! CE L'ABBIAMO FATTA!";
-                    } else {
-                        status.innerText = "❌ Ancora errore dal server.";
-                        errDiv.innerText = "Errore: " + (d.error ? d.error.message : JSON.stringify(d));
-                        errDiv.style.display = "block";
+                for (let m of modelli) {
+                    if (successo) break;
+                    debug.innerText += `\nProvando ${m}...`;
+                    
+                    try {
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${key}`;
+                        const r = await fetch(url, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                contents: [{parts: [
+                                    {text: "Trascrivi fedelmente questo registro apistico."},
+                                    {inline_data: {mime_type: file.type, data: b64}}
+                                ]}]
+                            })
+                        });
+
+                        const d = await r.json();
+
+                        if (d.candidates && d.candidates[0].content) {
+                            out.value = d.candidates[0].content.parts[0].text;
+                            status.innerText = "✅ CE L'ABBIAMO FATTA!";
+                            successo = true;
+                        } else {
+                            debug.innerText += `\nFallito ${m}: ${d.error ? d.error.message : 'Nessuna risposta'}`;
+                        }
+                    } catch (e) {
+                        debug.innerText += `\nErrore rete su ${m}`;
                     }
-                } catch(error) {
-                    status.innerText = "❌ Errore di rete.";
-                    errDiv.innerText = error.message;
-                    errDiv.style.display = "block";
+                }
+
+                if (!successo) {
+                    status.innerText = "❌ Nessun modello attivo. Controlla AI Studio.";
+                    debug.innerText += "\n\nATTENZIONE: Se tutti i modelli danno 404, torna su AI Studio e clicca su 'Get API Key' -> Clicca sulla tua chiave e assicurati che non ci siano restrizioni.";
                 }
             };
         };
