@@ -3,108 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BeeDoc AI - Professional</title>
+    <title>BeeDoc AI - Soluzione Finale</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #fdfdfd; margin: 0; display: flex; flex-direction: column; align-items: center; color: #333; }
-        header { background: #ffcc00; width: 100%; padding: 30px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; margin-bottom: 30px; }
-        header h1 { margin: 0; color: #443300; font-size: 2rem; font-weight: 800; }
-        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 95%; max-width: 700px; border: 1px solid #eee; box-sizing: border-box; }
-        .section { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 10px; font-weight: 700; color: #555; }
-        input { width: 100%; padding: 12px; border: 2px solid #f0f0f0; border-radius: 10px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.3s; text-transform: uppercase; margin-top: 10px; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        #status { text-align: center; margin: 20px 0; font-weight: 600; color: #d35400; min-height: 1.5em; }
-        textarea { width: 100%; height: 300px; padding: 20px; border: 1px solid #eee; border-radius: 15px; background: #f9f9f9; font-family: monospace; font-size: 14px; box-sizing: border-box; resize: vertical; }
+        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        h1 { color: #ccaa00; text-align: center; }
+        .field { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
+        button { width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; }
+        button:disabled { background: #ccc; }
+        #status { text-align: center; color: #d35400; font-weight: bold; margin: 15px 0; font-size: 0.8em; }
+        textarea { width: 100%; height: 250px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; font-family: monospace; }
+        .debug-box { font-size: 10px; color: #666; background: #eee; padding: 5px; margin-top: 10px; border-radius: 3px; display: none; }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>🐝 BEEDOC AI</h1>
-        <p>Digitalizzazione Registri Apistici</p>
-    </header>
-
     <div class="card">
-        <div class="section">
-            <label for="api-key">1. Chiave API Gemini</label>
-            <input type="password" id="api-key" placeholder="Incolla qui la tua API Key">
+        <h1>🐝 BeeDoc AI</h1>
+        
+        <div class="field">
+            <label for="key">Chiave API Gemini:</label>
+            <input type="password" id="key" placeholder="Incolla la chiave qui">
         </div>
 
-        <div class="section">
-            <label for="image-input">2. Foto del Registro (JPG/PNG)</label>
-            <input type="file" id="image-input" accept="image/*">
+        <div class="field">
+            <label for="foto">Foto Registro:</label>
+            <input type="file" id="foto" accept="image/*">
         </div>
 
-        <div id="status">Pronto per l'analisi</div>
-
-        <button id="process-btn">Avvia Analisi Digitale</button>
-
-        <label style="margin-top:20px">Risultato della trascrizione:</label>
-        <textarea id="output" placeholder="Il testo apparirà qui..."></textarea>
+        <button id="btn">AVVIA TRASCRIZIONE</button>
+        
+        <div id="status">Pronto.</div>
+        
+        <textarea id="out" placeholder="Il testo apparirà qui..."></textarea>
+        <div id="debug" class="debug-box"></div>
     </div>
 
     <script>
-        const processBtn = document.getElementById('process-btn');
-        const output = document.getElementById('output');
+        const btn = document.getElementById('btn');
         const status = document.getElementById('status');
+        const out = document.getElementById('out');
+        const debug = document.getElementById('debug');
 
-        processBtn.addEventListener('click', async () => {
-            const apiKey = document.getElementById('api-key').value.trim();
-            const fileInput = document.getElementById('image-input');
-
+        btn.addEventListener('click', async () => {
+            const apiKey = document.getElementById('key').value.trim();
+            const fileInput = document.getElementById('foto');
+            
             if (!apiKey || !fileInput.files[0]) {
-                alert("Per favore, inserisci la chiave API e seleziona una foto.");
+                alert("Manca chiave o foto!");
                 return;
             }
 
-            processBtn.disabled = true;
-            status.innerText = "⏳ Collegamento con l'AI in corso...";
-            output.value = "";
+            btn.disabled = true;
+            out.value = "";
+            debug.style.display = "block";
+            debug.innerText = "Inizio test modelli...";
 
-            try {
-                const file = fileInput.files[0];
-                const reader = new FileReader();
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onloadend = async () => {
+                const base64 = reader.result.split(',')[1];
                 
-                reader.onloadend = async () => {
-                    const base64Data = reader.result.split(',')[1];
-                    
-                    // SOLUZIONE AL 404: Usiamo v1beta che è la più compatibile con Gemini 1.5 Flash
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                    
-                    const payload = {
-                        contents: [{
-                            parts: [
-                                { text: "Trascrivi fedelmente questo registro apistico. Dividi per date. Mantieni termini come FAM, Nuclei, R, Celle." },
-                                { inline_data: { mime_type: file.type, data: base64Data } }
-                            ]
-                        }]
-                    };
+                // Elenco di TUTTI i possibili nomi che Google accetta per questo compito
+                const modelliDaProvare = [
+                    "gemini-1.5-flash-latest",
+                    "gemini-1.5-flash",
+                    "gemini-1.5-pro",
+                    "gemini-pro-vision"
+                ];
 
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+                let fatto = false;
 
-                    const data = await response.json();
+                for (let modello of modelliDaProvare) {
+                    if (fatto) break;
                     
-                    if (data.candidates && data.candidates[0].content) {
-                        output.value = data.candidates[0].content.parts[0].text;
-                        status.innerText = "✅ Analisi completata con successo!";
-                    } else if (data.error) {
-                        status.innerText = "❌ Errore Google: " + data.error.message;
-                    } else {
-                        status.innerText = "❌ Risposta non valida dal server.";
+                    status.innerText = `⏳ Provando modello: ${modello}...`;
+                    debug.innerText += `\nTestando ${modello}...`;
+
+                    // Proviamo sia v1beta che v1
+                    const versioni = ["v1beta", "v1"];
+
+                    for (let v of versioni) {
+                        if (fatto) break;
+
+                        const url = `https://generativelanguage.googleapis.com/${v}/models/${modello}:generateContent?key=${apiKey}`;
+                        
+                        try {
+                            const resp = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    contents: [{ parts: [
+                                        { text: "Trascrivi fedelmente questo registro apistico. Mantieni le date." },
+                                        { inline_data: { mime_type: file.type, data: base64 } }
+                                    ]}]
+                                })
+                            });
+
+                            const data = await resp.json();
+
+                            if (data.candidates && data.candidates[0].content) {
+                                out.value = data.candidates[0].content.parts[0].text;
+                                status.innerText = "✅ TRASCRITTO!";
+                                fatto = true;
+                            } else {
+                                debug.innerText += `\n${modello} (${v}) fallito: ${data.error ? data.error.message : 'no content'}`;
+                            }
+                        } catch (e) {
+                            debug.innerText += `\nErrore rete su ${modello}`;
+                        }
                     }
-                    processBtn.disabled = false;
-                };
-                reader.readAsDataURL(file);
+                }
 
-            } catch (error) {
-                status.innerText = "❌ Errore di connessione: " + error.message;
-                processBtn.disabled = false;
-            }
+                if (!fatto) {
+                    status.innerText = "❌ Nessun modello ha risposto. Controlla la Chiave API.";
+                }
+                btn.disabled = false;
+            };
+
+            reader.readAsDataURL(file);
         });
     </script>
 </body>
