@@ -2,54 +2,63 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>BeeDoc AI - VITTORIA</title>
+    <title>BeeDoc AI - Auto-Scanner</title>
 </head>
 <body style="font-family:sans-serif; text-align:center; padding:30px; background:#f4f4f4;">
-    <div style="background:white; padding:30px; border-radius:15px; max-width:500px; margin:auto; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
-        <h1 style="color:#ccaa00;">🐝 BeeDoc AI</h1>
-        <p>Usa la chiave dell'account che ha appena trascritto!</p>
-        <input type="password" id="chiave_api" placeholder="Incolla API Key" style="width:90%; padding:12px; margin:10px; border-radius:8px; border:1px solid #ccc;"><br>
-        <input type="file" id="foto_registro" style="margin:20px;"><br>
-        <button id="btn_vai" style="padding:15px 30px; background:#333; color:white; border:none; border-radius:10px; cursor:pointer; font-weight:bold;">TRASCRIVI ORA</button>
-        <p id="stato_testo" style="font-weight:bold; color:orange;">Stato: Pronto</p>
-        <textarea id="risultato_testo" style="width:90%; height:250px; margin-top:10px; padding:10px; border-radius:8px; border:1px solid #eee;"></textarea>
+    <div style="background:white; padding:30px; border-radius:15px; max-width:500px; margin:auto;">
+        <h1>🐝 BeeDoc AI</h1>
+        <input type="password" id="k" placeholder="Incolla API Key" style="width:90%; padding:10px; margin:10px;">
+        <input type="file" id="f" style="margin:20px;">
+        <button id="go" style="padding:15px; width:90%; cursor:pointer;">AVVIA SCANSIONE E ANALISI</button>
+        <p id="s" style="font-weight:bold; color:orange;">Stato: Pronto</p>
+        <textarea id="o" style="width:90%; height:200px; margin-top:10px;"></textarea>
     </div>
 
     <script>
-        document.getElementById('btn_vai').onclick = async () => {
-            const k = document.getElementById('chiave_api').value.trim();
-            const f = document.getElementById('foto_registro').files[0];
-            const s = document.getElementById('stato_testo');
-            const res = document.getElementById('risultato_testo');
+        document.getElementById('go').onclick = async () => {
+            const k = document.getElementById('k').value.trim();
+            const f = document.getElementById('f').files[0];
+            const s = document.getElementById('s');
+            const o = document.getElementById('o');
 
-            if(!k || !f) return alert("Manca la chiave o la foto!");
+            if(!k || !f) return alert("Manca chiave o foto!");
 
-            s.innerText = "⏳ Analisi in corso...";
+            s.innerText = "⏳ Ricerca modelli disponibili...";
+            
             const reader = new FileReader();
             reader.readAsDataURL(f);
             reader.onloadend = async () => {
                 const b64 = reader.result.split(',')[1];
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${k}`;
                 
-                try {
-                    const r = await fetch(url, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            contents: [{parts: [{text: "Trascrivi fedelmente questo registro apistico."}, {inline_data: {mime_type: f.type, data: b64}}]}]
-                        })
-                    });
-                    const d = await r.json();
-                    
-                    if(d.candidates && d.candidates[0].content) {
-                        res.value = d.candidates[0].content.parts[0].text;
-                        s.innerText = "✅ CE L'ABBIAMO FATTA!";
-                        s.style.color = "green";
-                    } else {
-                        s.innerText = "❌ Errore: " + (d.error ? d.error.message : "Riprova");
-                        s.style.color = "red";
-                    }
-                } catch(e) { s.innerText = "❌ Errore rete"; }
+                // Proviamo i 3 nomi "varianti" che Google usa in Europa nel 2026
+                const modelliDaProvare = [
+                    "gemini-1.5-flash-latest",
+                    "gemini-1.5-flash",
+                    "gemini-1.5-pro"
+                ];
+
+                for (let m of modelliDaProvare) {
+                    s.innerText = `⏳ Tentativo con ${m}...`;
+                    try {
+                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${k}`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                contents: [{parts: [{text: "Trascrivi integralmente."}, {inline_data: {mime_type: f.type, data: b64}}]}]
+                            })
+                        });
+                        const d = await r.json();
+                        
+                        if(d.candidates) {
+                            o.value = d.candidates[0].content.parts[0].text;
+                            s.innerText = `✅ FUNZIONA! (Usato: ${m})`;
+                            return; // Esci dal ciclo se uno funziona
+                        }
+                    } catch(e) {}
+                }
+                
+                s.innerText = "❌ Nessun modello trovato. Google blocca la chiave.";
+                o.value = "Suggerimento: Se la chat funziona ma l'API no, Google sta limitando la tua chiave API per motivi regionali. L'unica soluzione è creare la chiave usando un account Gmail diverso (non aziendale).";
             };
         };
     </script>
