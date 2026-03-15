@@ -11,7 +11,10 @@
         header p { margin: 8px 0 0; color: #775500; font-size: 1rem; text-transform: uppercase; }
         .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); width: 95%; max-width: 800px; border: 1px solid #f0f0f0; box-sizing: border-box; }
         .section { margin-bottom: 25px; }
-        label { display: block; margin-bottom: 12px; font-weight: 700; color: #555; }
+        
+        /* Stile label corretto */
+        label { display: block; margin-bottom: 12px; font-weight: 700; color: #555; cursor: pointer; }
+        
         input[type="password"], input[type="file"] { width: 100%; padding: 14px; border: 2px solid #f0f0f0; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
         .btn-group { display: flex; gap: 20px; margin: 30px 0; }
         button { flex: 1; padding: 16px; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.3s; font-size: 1rem; text-transform: uppercase; }
@@ -31,20 +34,27 @@
 
     <div class="card">
         <div class="section">
-            <label>1. Chiave API Gemini</label>
+            <label for="api-key">1. Chiave API Gemini</label>
             <input type="password" id="api-key" placeholder="Incolla qui la tua API Key">
         </div>
+
         <div class="section">
-            <label>2. Foto del Registro (JPG/PNG)</label>
+            <label for="image-input">2. Foto del Registro (JPG/PNG)</label>
             <input type="file" id="image-input" accept="image/*">
         </div>
-        <div id="status">Pronto per l'analisi</div>
+
+        <div id="status" aria-live="polite">Pronto per l'analisi</div>
+
         <div class="btn-group">
-            <button id="process-btn">Avvia Analisi</button>
-            <button id="download-btn" disabled>Scarica Testo</button>
+            <button id="process-btn" type="button">Avvia Analisi</button>
+            <button id="download-btn" type="button" disabled>Scarica Testo</button>
         </div>
+
+        <label for="output">Risultato della trascrizione:</label>
         <textarea id="output" placeholder="Il testo apparirà qui..."></textarea>
     </div>
+
+    <footer>Versione 2.1 - Accessibilità Corretta</footer>
 
     <script>
         const processBtn = document.getElementById('process-btn');
@@ -71,7 +81,7 @@
                 reader.onloadend = async () => {
                     const base64Data = reader.result.split(',')[1];
                     
-                    // INDIRIZZO AGGIORNATO: Usiamo v1 invece di v1beta e correggiamo il percorso del modello
+                    // Endpoint aggiornato alla versione V1 (stabile)
                     const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                     
                     const payload = {
@@ -97,8 +107,7 @@
                         downloadBtn.disabled = false;
                         downloadBtn.classList.add('active');
                     } else {
-                        // Se c'è un errore, mostriamolo chiaramente
-                        const errorMsg = data.error ? data.error.message : "Errore ignoto";
+                        const errorMsg = data.error ? data.error.message : "Errore nella risposta di Google";
                         throw new Error(errorMsg);
                     }
                 };
@@ -106,7 +115,6 @@
 
             } catch (error) {
                 status.innerText = "❌ Errore: " + error.message;
-                console.error("Dettaglio Errore:", error);
             } finally {
                 processBtn.disabled = false;
             }
