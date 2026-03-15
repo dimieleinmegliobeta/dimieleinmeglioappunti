@@ -2,35 +2,27 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>BeeDoc AI - Scanner Finale con Word</title>
+    <title>BeeDoc AI - Scanner Finale</title>
     <style>
         body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding: 20px; }
         .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); width: 100%; max-width: 550px; border-top: 5px solid #ffcc00; }
         h1 { margin: 0 0 10px 0; color: #333; text-align: center; }
         input, button, textarea { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; }
-        
-        button { background: #333; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #555; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-
-        /* Stile specifico per il pulsante Word */
-        #downloadBtn { 
-            background: #2b5797; /* Blu Word */
-            color: white;
-            display: none; /* Appare solo dopo il successo */
-            margin-top: 15px;
-        }
-        #downloadBtn:hover { background: #1e3e6d; }
-
+        button { background: #333; color: white; border: none; font-weight: bold; cursor: pointer; }
         #status { font-weight: bold; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 0.9em; text-align: center; background: #eee; white-space: pre-wrap; }
         textarea { height: 300px; font-family: monospace; font-size: 13px; background: #fafafa; }
+        
+        /* Contenitore tasti download */
+        .download-area { display: none; gap: 10px; margin-top: 10px; }
+        #btnDoc { background: #2b5797; flex: 1; }
+        #btnGDocs { background: #0f9d58; flex: 1; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h1>🐝 BeeDoc AI</h1>
-    <p style="color: #666; font-size: 0.8em; text-align: center;">Modello: gemini-flash-latest</p>
+    <p style="text-align: center; color: #666; font-size: 0.8em;">Modello: gemini-flash-latest</p>
 
     <input type="password" id="apiKey" placeholder="Incolla Chiave API (AIza...)">
     <input type="file" id="fileInput" accept="image/*">
@@ -39,15 +31,20 @@
     
     <div id="status">Stato: In attesa</div>
     <textarea id="output" placeholder="Il risultato apparirà qui..."></textarea>
-
-    <button id="downloadBtn">📄 SCARICA TRASCRIZIONE (.DOC)</button>
+    
+    <div id="downloadArea" class="download-area" style="display: flex; display: none;">
+        <button id="btnDoc">SCARICA .DOC</button>
+        <button id="btnGDocs">GOOGLE DOCS (.HTML)</button>
+    </div>
 </div>
 
 <script>
 const processBtn = document.getElementById('processBtn');
-const downloadBtn = document.getElementById('downloadBtn');
 const status = document.getElementById('status');
 const output = document.getElementById('output');
+const downloadArea = document.getElementById('downloadArea');
+const btnDoc = document.getElementById('btnDoc');
+const btnGDocs = document.getElementById('btnGDocs');
 
 processBtn.onclick = async () => {
     const key = document.getElementById('apiKey').value.trim();
@@ -59,17 +56,15 @@ processBtn.onclick = async () => {
     }
 
     const modelAlias = "gemini-flash-latest"; 
-
-    status.innerText = `⏳ Proviamo con l'alias: ${modelAlias}...`;
+    status.innerText = `⏳ Scansione in corso...`;
     status.style.color = "orange";
     processBtn.disabled = true;
-    downloadBtn.style.display = "none";
+    downloadArea.style.display = "none";
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onloadend = async () => {
         const base64Data = reader.result.split(',')[1];
-        
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelAlias}:generateContent?key=${key}`;
 
         try {
@@ -88,23 +83,16 @@ processBtn.onclick = async () => {
 
             const data = await response.json();
 
-            if (data.error) {
-                throw new Error(`${data.error.message} (Codice: ${data.error.code})`);
-            }
+            if (data.error) throw new Error(data.error.message);
 
             if (data.candidates && data.candidates[0].content) {
                 output.value = data.candidates[0].content.parts[0].text;
-                status.innerText = "✅ CE L'ABBIAMO FATTA!";
+                status.innerText = "✅ SCANSIONE COMPLETATA";
                 status.style.color = "green";
-                
-                // MOSTRA IL PULSANTE DOPO IL SUCCESSO
-                downloadBtn.style.display = "block";
-            } else {
-                throw new Error("Risposta vuota. Prova un'altra immagine.");
+                downloadArea.style.display = "flex";
             }
         } catch (err) {
-            console.error(err);
-            status.innerText = "❌ ERRORE:\n" + err.message;
+            status.innerText = "❌ ERRORE: " + err.message;
             status.style.color = "red";
         } finally {
             processBtn.disabled = false;
@@ -112,21 +100,28 @@ processBtn.onclick = async () => {
     };
 };
 
-// Funzione per la conversione e il download in DOC
-downloadBtn.onclick = () => {
+// DOWNLOAD .DOC CLASSICO
+btnDoc.onclick = () => {
     const text = output.value;
-    if (!text) return;
-
-    // \ufeff serve per gestire correttamente gli accenti in Word
-    const blob = new Blob(['\ufeff', text], { type: 'application/msword' });
+    const blob = new Blob([text], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = 'Trascrizione_BeeDoc.doc';
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+};
+
+// DOWNLOAD HTML PER GOOGLE DOCS (Preserva formattazione)
+btnGDocs.onclick = () => {
+    const text = output.value;
+    const formattedText = text.replace(/\n/g, '<br>');
+    const htmlContent = `<html><body style="font-family: Arial; line-height: 1.5;">${formattedText}</body></html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'Per_Google_Docs.html';
+    link.click();
 };
 </script>
 
