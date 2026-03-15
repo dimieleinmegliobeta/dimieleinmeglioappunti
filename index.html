@@ -1,60 +1,110 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-    <title>BeeDoc AI - Ultima Speranza</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeeDoc AI - Versione Nonno</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #fafafa; }
-        .box { background: white; border: 2px solid #ffcc00; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; }
-        input, button { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; }
-        button { background: #333; color: white; font-weight: bold; cursor: pointer; }
-        textarea { width: 90%; height: 200px; margin-top: 20px; }
-        #log { font-size: 10px; color: red; text-align: left; padding: 10px; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 550px; border-top: 5px solid #ffcc00; }
+        h1 { color: #444; margin-top: 0; text-align: center; }
+        p { color: #666; font-size: 0.9em; text-align: center; }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1em; transition: 0.3s; }
+        button:hover { background: #000; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status { text-align: center; font-weight: bold; margin: 15px 0; color: #d35400; min-height: 1.2em; }
+        textarea { width: 100%; height: 250px; margin-top: 15px; border-radius: 10px; border: 1px solid #eee; padding: 15px; box-sizing: border-box; font-family: monospace; background: #fafafa; line-height: 1.5; }
+        #error-display { font-size: 11px; color: #721c24; background: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; margin-top: 10px; border-radius: 5px; display: none; white-space: pre-wrap; }
     </style>
 </head>
 <body>
-    <div class="box">
+
+    <div class="container">
         <h1>🐝 BeeDoc AI</h1>
-        <input type="password" id="k" placeholder="Incolla Chiave API">
-        <input type="file" id="f" accept="image/*">
-        <button id="go">LEGGI REGISTRO</button>
-        <div id="s">Stato: Pronto</div>
-        <textarea id="o"></textarea>
-        <div id="log"></div>
+        <p>Versione Ultra-Compatibile (Pro Vision)</p>
+        
+        <div class="input-group">
+            <label for="apiKey">Chiave API Gemini:</label>
+            <input type="password" id="apiKey" placeholder="Incolla qui la tua chiave">
+        </div>
+
+        <div class="input-group">
+            <label for="imageInput">Foto del Registro:</label>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+
+        <button id="btnAvvia">ANALIZZA REGISTRO</button>
+        
+        <div id="status">Pronto all'uso</div>
+        
+        <textarea id="output" placeholder="La trascrizione apparirà qui..."></textarea>
+        
+        <div id="error-display"></div>
     </div>
 
     <script>
-        document.getElementById('go').onclick = async () => {
-            const key = document.getElementById('k').value;
-            const file = document.getElementById('f').files[0];
-            if(!key || !file) return alert("Manca qualcosa!");
+        const btn = document.getElementById('btnAvvia');
+        const status = document.getElementById('status');
+        const output = document.getElementById('output');
+        const errorDisplay = document.getElementById('error-display');
 
-            document.getElementById('s').innerText = "⏳ Sto bussando a Google...";
+        btn.onclick = async () => {
+            const key = document.getElementById('apiKey').value.trim();
+            const fileInput = document.getElementById('imageInput');
+            const file = fileInput.files[0];
+
+            if (!key || !file) {
+                alert("Per favore, inserisci la chiave e seleziona una foto!");
+                return;
+            }
+
+            // Reset interfaccia
+            btn.disabled = true;
+            status.innerText = "⏳ Collegamento al server 'Nonno'...";
+            output.value = "";
+            errorDisplay.style.display = "none";
+
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onloadend = async () => {
-                const b64 = reader.result.split(',')[1];
-                
-                // USIAMO IL MODELLO PIÙ COMPATIBILE IN ASSOLUTO
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`;
-                
                 try {
-                    const r = await fetch(url, {
+                    const base64Data = reader.result.split(',')[1];
+                    
+                    // INDIRIZZO STORICO GEMINI PRO VISION
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${key}`;
+                    
+                    const response = await fetch(url, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            contents: [{parts: [{text: "Trascrivi il testo di questa foto."}, {inline_data: {mime_type: file.type, data: b64}}]}]
+                            contents: [{
+                                parts: [
+                                    { text: "Trascrivi integralmente questo registro di apicoltura, organizzandolo per date e mantenendo i termini tecnici (FAM, Nuclei, R, Celle)." },
+                                    { inline_data: { mime_type: file.type, data: base64Data } }
+                                ]
+                            }]
                         })
                     });
-                    const d = await r.json();
-                    if(d.candidates) {
-                        document.getElementById('o').value = d.candidates[0].content.parts[0].text;
-                        document.getElementById('s').innerText = "✅ CE L'ABBIAMO FATTA!";
+
+                    const data = await response.json();
+
+                    if (data.candidates && data.candidates[0].content) {
+                        output.value = data.candidates[0].content.parts[0].text;
+                        status.innerText = "✅ TRASCRIZIONE RIUSCITA!";
                     } else {
-                        document.getElementById('log').innerText = JSON.stringify(d.error);
-                        document.getElementById('s').innerText = "❌ Niente da fare.";
+                        status.innerText = "❌ Google ha rifiutato la richiesta.";
+                        errorDisplay.innerText = "Dettaglio Errore: " + (data.error ? data.error.message : JSON.stringify(data));
+                        errorDisplay.style.display = "block";
                     }
-                } catch(e) {
-                    document.getElementById('s').innerText = "❌ Errore connessione.";
+                } catch (err) {
+                    status.innerText = "❌ Errore di connessione.";
+                    errorDisplay.innerText = err.message;
+                    errorDisplay.style.display = "block";
+                } finally {
+                    btn.disabled = false;
                 }
             };
         };
