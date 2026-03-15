@@ -62,7 +62,7 @@
             }
 
             processBtn.disabled = true;
-            status.innerText = "⏳ Analisi in corso direttamente con Google AI...";
+            status.innerText = "⏳ Analisi in corso...";
 
             try {
                 const file = fileInput.files[0];
@@ -71,13 +71,13 @@
                 reader.onloadend = async () => {
                     const base64Data = reader.result.split(',')[1];
                     
-                    // Chiamata diretta API (senza librerie esterne)
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                    // INDIRIZZO AGGIORNATO: Usiamo v1 invece di v1beta e correggiamo il percorso del modello
+                    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                     
                     const payload = {
                         contents: [{
                             parts: [
-                                { text: "Trascrivi integralmente questo registro di apicoltura organizzandolo per date. Mantieni termini come FAM, Nuclei, R, Celle. Restituisci solo il testo." },
+                                { text: "Trascrivi fedelmente questo registro di apicoltura. Organizzalo per date. Mantieni termini come FAM, Nuclei, R, Celle. Restituisci solo il testo trascritto." },
                                 { inline_data: { mime_type: file.type, data: base64Data } }
                             ]
                         }]
@@ -91,19 +91,22 @@
 
                     const data = await response.json();
                     
-                    if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    if (data.candidates && data.candidates[0].content) {
                         output.value = data.candidates[0].content.parts[0].text;
                         status.innerText = "✅ Completato!";
                         downloadBtn.disabled = false;
                         downloadBtn.classList.add('active');
                     } else {
-                        throw new Error(data.error ? data.error.message : "Errore nella risposta AI");
+                        // Se c'è un errore, mostriamolo chiaramente
+                        const errorMsg = data.error ? data.error.message : "Errore ignoto";
+                        throw new Error(errorMsg);
                     }
                 };
                 reader.readAsDataURL(file);
 
             } catch (error) {
                 status.innerText = "❌ Errore: " + error.message;
+                console.error("Dettaglio Errore:", error);
             } finally {
                 processBtn.disabled = false;
             }
